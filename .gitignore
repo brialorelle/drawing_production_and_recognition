@@ -35,3 +35,4 @@ history.csv
 *.tex
 ._*
 data/drawings/stringent_cleaned_dataset.zip
+data/preprocessed_data/data_long.csv
