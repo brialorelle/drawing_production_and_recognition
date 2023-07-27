@@ -1,4 +1,4 @@
-# "Parallel devleopmental changes in children's production and recognition of line drawings of visual concepts" 
+# "Parallel developmental changes in children's production and recognition of line drawings of visual concepts" 
 
 This repository is designed to share the data, code, and figures that support the above paper. 
 
