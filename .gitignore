@@ -1,0 +1,36 @@
+
+# auth files
+auth.txt
+auth.json
+
+# ignore all writing files for now given 
+writing/*
+
+# big files with svgs rendered
+preprocess_drawings/1_get_sketches/full_dataset_info/*
+
+experiments/museumstation/_old/*
+/experiments/recoggames/animalgame/code/node_modules/*
+
+# ds_store
+*.DS_Store
+.DS_Store
+.DS_Store
+
+.RData
+.Rhistory
+
+
+*.npy
+*.json
+*.ipynb_checkpoints/
+*.pyc
+
+gmail_creds.json
+history.csv
+.Rproj.user
+
+.idea
+*.png
+*.tex
+._*
