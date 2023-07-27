@@ -1,0 +1,13 @@
+library(tidyverse)
+library(here)
+library(assertthat)
+library(ggthemes)
+library(viridis)
+library(lme4)
+library(lmerTest)
+library(langcog)
+library(pander)
+library(tidytext) # for plotting
+library(knitr) # for html rendering
+library(langcog) 
+library(xtable)
