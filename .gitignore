@@ -36,3 +36,6 @@ history.csv
 ._*
 data/drawings/stringent_cleaned_dataset.zip
 data/preprocessed_data/data_long.csv
+data/surveys/visual_experience/raw/Visual Experience Development Survey_October 2, 2020_15.16.csv
+data/surveys/drawing_experience/raw/Drawing Experience Survey_August 28, 2020_13.58.csv
+data/surveys/drawing_experience/raw/Drawing Experience Survey_August 27, 2020_17.21.csv
