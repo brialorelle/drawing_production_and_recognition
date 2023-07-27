@@ -1,0 +1,179 @@
+---
+title: "Part annotations preprocessing"
+author: "Bria Long and Holly Huey"
+date: "1/4/2022, updated 7/2023"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+---
+
+This markdown was written for *kiddraw_annotations* (data originally collected in Long, Fan, Chai, & Frank, 2021). The data and figures of this markdown will be submitted to the CogSci conference 2022. 
+
+Note about what happened before this markdown: 
+1) data collected from the experiment through analysis/step2_generate_metadata/kiddraw_generate_metadata.ipynb
+
+2) data was preprocessed in analysis/step3_analysis/kiddraw_analyses.ipynb — in particular, data sessions were excluded based on low accuracy on the catch trials and we used this notebook to check whether every drawing has responses from at least 3 annotators. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache=FALSE, warning=FALSE)
+```
+
+```{r message = FALSE}
+library(tidyverse)
+library(lme4)
+library(pander)
+library(lmerTest)
+library(ggthemes)
+library(stringr)
+library(tidytext) # for plotting
+library(knitr) # for html rendering
+
+```
+
+# Preprocessing
+## Load in all data and bind
+
+```{r}
+data_dir = here::here('data/drawing_annotations_raw/')
+files = dir(data_dir)
+all_data = as_tibble()
+file_count = 0
+for (f in files){
+  file_count = file_count+1
+  data_chunk = read_csv(paste0(data_dir, f))
+  if (file_count==1){
+    all_data = data_chunk
+  }
+  else {
+  all_data = full_join(all_data, data_chunk)
+  }
+}
+```
+
+
+```{r message = FALSE}
+## how many total participants (after preprocessing/exclusions)?
+total_annotators = length(unique(all_data$gameID))
+```
+```{r}
+save(all_data, file = here::here('data/part_annotations_processed/all_data_agreed_or_not.Rdata'))
+```
+
+
+```{r}
+ d <- all_data %>%
+  #sessionID = of skethcer, gameID = prolific annotating ID
+  select(roi_labelName, category, age, sessionID, gameID, catch, strokeIndex, filename, roi_buttonType, gameType, arcLength, svg) %>%
+  filter(catch==FALSE) %>% # exclude catch trials
+  mutate(age_numeric =
+           as.numeric(str_split_fixed(age,'age',2)[,2]))  # make numeric version of age
+
+```
+
+##  Count number of images per age/category
+```{r}
+img_per_category_age <- d %>%
+  group_by(category, age_numeric) %>%
+  summarize(count_images = length(unique(filename)))  %>%
+  mutate(category = factor(category, levels = c("bird", "fish", "rabbit","dog" ,"sheep","tiger" ,"camel" , "bear", "cup","lamp", "hat","bottle", "car", "boat","airplane","train")))
+
+```
+
+## Compute how many images we have more than two annotators
+```{r}
+d_agree <- d %>%
+  group_by(filename) %>%
+  mutate(count_participants = length(unique(gameID))) %>%
+  filter(count_participants >= 2) 
+
+length(unique(d_agree$filename))
+```
+
+```{r}
+d_agree_3 <- d %>%
+  group_by(filename) %>%
+  mutate(count_participants = length(unique(gameID))) %>%
+  filter(count_participants >= 3) 
+
+length(unique(d_agree_3$filename))
+```
+## Look at agreement by label
+```{r}
+all_responses_by_age <- d %>%
+  group_by(age_numeric) %>%
+  count(roi_buttonType)
+```
+
+```{r}
+##
+d_check_agree <- d %>%
+  group_by(filename) %>%
+  mutate(roi_labelName = tolower(roi_labelName)) %>%
+  mutate(count_participants = length(unique(gameID))) %>%
+  filter(count_participants > 2) %>% # at least 2 participants
+  add_count(filename, roi_labelName, strokeIndex, roi_buttonType)  %>%
+  mutate(include = n>=(count_participants-1))
+
+```
+
+### Calculate agreement
+```{r}
+agree_by_age_by_class <- d_check_agree %>%
+  group_by(category, age_numeric) %>%
+  summarize(agree = mean(include)) 
+
+agree_by_age <- d_check_agree %>%
+  group_by (age_numeric) %>%
+  summarize(agree = mean(include)) 
+
+agree_by_category <- d_check_agree %>%
+  group_by (category) %>%
+  summarize(agree = mean(include)) 
+```
+
+### Plot agreements
+```{R}
+ggplot(data = agree_by_age_by_class, aes(x=age_numeric, y=agree, col=category)) +
+  geom_point() +
+  theme_few() +
+  facet_wrap(~category) +
+  xlab('Age of sketcher')
+```
+
+
+
+
+### Construct preprocessed data structure
+```{r}
+d_agree_labels <- d_check_agree %>%
+  filter(include==TRUE) %>% # ibetween 66-80%
+  select(-gameID, -catch, -sessionID) %>% 
+  distinct() %>% # get rid of duplicate rows across annotators
+  # Rename factor levels to be pretty
+  mutate(game = factor(gameType, levels = c('big_animals','small_animals','vehicles','objects'), labels = c('Big Animals','Small Animals','Vehicles', 'Objects'))) %>%
+  mutate(category = factor(category, levels = c("bird", "fish", "rabbit","dog" ,"sheep","tiger" ,"camel" , "bear", "cup","lamp", "hat","bottle", "car", "boat","airplane","train")))
+
+# get rid of svg
+d_agree_labels_with_svg <- d_check_agree %>%
+  filter(include==TRUE) %>% # 
+  select(-gameID, -catch, -sessionID) %>% 
+  distinct() %>% # get rid of duplicate rows across annotators
+  # Rename factor levels to be pretty
+  mutate(game = factor(gameType, levels = c('big_animals','small_animals','vehicles','objects'), labels = c('Big Animals','Small Animals','Vehicles', 'Objects'))) %>%
+  mutate(category = factor(category, levels = c("bird", "fish", "rabbit","dog" ,"sheep","tiger" ,"camel" , "bear", "cup","lamp", "hat","bottle", "car", "boat","airplane","train")))
+
+d_agree_labels <- d_agree_labels %>%
+  select(-svg)
+
+
+```
+
+```{r}
+save(d_agree_labels, file = here::here('data/part_annotations_processed/merged_annotations.RData'))
+
+save(d_agree_labels, file = here::here('data/part_annotations_processed/merged_annotations.csv'))
+```
+```{r}
+pander(sessionInfo())
+```

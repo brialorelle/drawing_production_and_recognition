@@ -1,0 +1,333 @@
+---
+title: "Drawing analyses: preprocess and merge datasets"
+author: "Bria Long"
+date: "7/2022, finalized 7/2023"
+output:
+  html_document:
+    toc: true
+    theme: united
+---
+
+# Libraries
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(assertthat)
+library(ggthemes)
+library(egg)
+library(viridis)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(langcog)
+library(pander)
+```
+
+```{r include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+
+# Set random seed for reproducibility
+set.seed(123)
+```
+
+## Load, describe, and join the datasets
+### Filtered dataset metadata
+```{r}
+all_meta <- read_csv(file = here::here('data/drawings/stringent_cleaned_dataset_meta/all_object_metadata_cleaned.csv')) %>%
+  as_tibble() %>%
+  mutate(category = str_split_fixed(category,' ',2)[,2]) %>%
+  mutate(category = str_replace(category,' ','.'))  # ice cream
+```
+
+### Basic descriptives of filtered set
+```{r}
+num_subs = length(unique(all_meta$session_id))
+```
+
+The final, filtered dataset of N=`r length(unique(all_meta$filename))`  drawings from `r length(unique(all_meta$category))` categories from `r num_subs` children who were on average `r mean(all_meta$age_numeric)` years of age (range 3-10 years). 
+
+### Load category frequency ratings
+```{r}
+frequency = read_csv(file = here::here('data/surveys/drawing_experience/preprocessed/Category_frequency_survey.csv')) 
+```
+
+To assess this, `r length(unique(frequency$subject_id))` parents of children aged 3-10 years filled out a survey asking about the frequency with with their children drew the categories in the dataset.
+
+```{r}
+count_by_age <- frequency %>%
+  group_by(childs_age) %>%
+  dplyr::summarize(num_surveys = length(unique(subject_id)))
+```
+
+```{r}
+freq_by_category <- frequency %>%
+  # filter(childs_age > 2) %>%
+  mutate(category = str_split_fixed(category,' ',2)[,2]) %>%
+  mutate(category = str_replace(category,' ','.')) %>%
+  filter(category %in% all_meta$category) %>%
+  group_by(category) %>%
+  summarize(drawing_frequency = mean(often_drawn_rating)) %>%
+  mutate(above_median_freq = drawing_frequency > median(drawing_frequency)) 
+
+write_csv(freq_by_category, here::here('data/surveys/drawing_experience/preprocessed/freq_by_category.csv'))
+
+
+```
+
+### Load tracing data
+```{r}
+all_tracings <- read_csv(here('data/tracing/rated_all_museumstation_filtered.csv'))%>%
+  select(-...1, -X)
+
+## Make averages for joining
+by_subject_tracing_avg <- all_tracings %>%
+  distinct(session_id, category, age, rating) %>% 
+  group_by(session_id) %>%
+  summarize(avg_tracing_rating = mean(rating))
+```
+
+### Load category animacy/size (hardcoding)
+```{r}
+animacy_csv <- read_csv(here::here('data/drawings/category_metadata/animacy.csv')) %>%
+  as_tibble() %>%
+  mutate(animacy_size = case_when(animacy == '0' & size=='0' ~ 2, # small objects
+                                  animacy == '0' & size=='1' ~ 1, # big objects
+                                  animacy == '1' & size=='0' ~ 4, # small animals
+                                  animacy == '1' & size=='1' ~ 3)) # big animals
+
+```
+
+### Load CLIP classifications
+```{r}
+load(file=here::here('data/clip_outputs/fullset/clip_by_image.RData'))
+load(file=here::here('data/clip_outputs/fullset/clip_long.RData'))
+
+```
+
+
+### Load VGG classification data
+```{r}
+num_batches=232
+# reg_string = 'C_0.1_T_0.1'
+reg_string = 'P1'
+
+layers = c('P1','P2','P3','P4','P5','FC6','FC7')
+for (this_layer in layers){
+  
+temp_class_data <- read.csv(here::here('data','compiled_classifications',paste0(this_layer,'batchtotal_', as.character(num_batches),'.csv'))) %>%
+  mutate(session_id = paste('cdm_',session_id,sep="")) %>%
+  mutate(age_numeric = age) %>%
+  mutate(age = paste('age',age,sep="")) %>%
+  mutate(age = as.factor(age)) %>%
+  mutate(category = target_label) %>%
+  mutate(image_name = paste(target_label,'_sketch_', age,'_', session_id,'.png',sep="")) %>%
+  select(-X)  %>%
+  mutate(category = str_replace(category,' ','.')) %>% # ice cream = ice.cream 
+  mutate(layer = this_layer) 
+
+  if (this_layer=='P1'){
+    all_layer_class = temp_class_data
+  }
+  else {
+  all_layer_class <- all_layer_class %>%
+    full_join(temp_class_data)
+  }
+
+}
+```
+
+
+```{r}
+## Order these layers reasonably.
+layers_ordered = c('P1','P2','P3','P4','P5','FC6','FC7')
+
+all_layer_class <- all_layer_class %>%
+ mutate(layer = factor(layer, levels = layers_ordered)) %>%
+ select(-X.1, -index, -batch, -batch_str) %>%
+ rename(guessed_category = target_label)
+
+
+```
+
+
+#### For each layer
+Save vgg layers outputs for extra analyses
+```{r}
+save(all_layer_class, file=here::here('data/compiled_classifications/vgg_outputs.RData'))
+```
+
+
+```{R}
+# classification_data_fc7 <- read.csv(here::here('data','compiled_classifications/',paste0('C_0.1_T_0.1', 'batchtotal_',as.character(num_batches),'.csv'))) %>%
+#   mutate(session_id = paste('cdm_',session_id,sep="")) %>%
+#   mutate(age_numeric = age) %>%
+#   mutate(age = paste('age',age,sep="")) %>%
+#   mutate(age = as.factor(age)) %>%
+#   mutate(category = target_label) %>%
+#   mutate(image_name = paste(target_label,'_sketch_', age,'_', session_id,'.png',sep="")) %>%
+#   select(-X)  %>%
+#   mutate(category = str_replace(category,' ','.'))  # ice cream = ice.cream
+
+```
+
+```{r}
+# classification_data_fc6 <- read.csv(here::here('data','compiled_classifications/',paste0('FC6','batchtotal_',as.character(num_batches),'.csv'))) %>%
+#   mutate(session_id = paste('cdm_',session_id,sep="")) %>%
+#   mutate(age_numeric = age) %>%
+#   mutate(age = paste('age',age,sep="")) %>%
+#   mutate(age = as.factor(age)) %>%
+#   mutate(category = target_label) %>%
+#   mutate(image_name = paste(target_label,'_sketch_', age,'_', session_id,'.png',sep="")) %>%
+#   select(-X)  %>%
+#   mutate(category = str_replace(category,' ','.'))  # ice cream = ice.cream
+
+```
+
+
+### Load part emphasis
+```{r}
+# all annotations before filtering
+load(file = here::here('data/part_annotations_processed/merged_annotations.RData'))
+```
+
+```{r}
+# preprocesssed emphasis data
+load(file = here::here('data/part_annotations_processed/part_emphasis.RData'))
+```
+
+```{r}
+# example drawing in presentation, or any other we want to examine
+# example <- part_emphasis_all %>% filter(filename == 'bird_sketch_age8_cdm_run_v31530484377182.png')
+# 
+# what_annotations <- d_agree_labels %>% filter(filename == 'bird_sketch_age8_cdm_run_v31530484377182.png')
+```
+
+## Join meta data, drawing frequnecy, and classification data
+```{r}
+d <- all_layer_class %>% 
+  filter(layer=='FC6') %>%
+  gather(key = 'class', value = 'prob', contains('prob')) %>%
+  mutate(class = str_split_fixed(class, '_prob',2)[,1]) %>%
+  group_by(image_name, age, category, correct_or_not, session_id, age_numeric) %>%
+  summarize(denom = sum(prob), target_label_prob = prob[class==category], log_odds = log(target_label_prob / (denom - target_label_prob))) %>%
+  rename(filename = image_name) %>%
+  left_join(all_meta, by=c("filename", "category", "age_numeric","session_id")) %>%
+  mutate(draw_duration = draw_duration_old) %>% # using end of last stroke - end of first stroke (is 0 for one stroke drawings)
+  mutate(run = substr(session_id,0,10)) %>% 
+  left_join(freq_by_category) %>%
+  mutate(correct_or_not = as.numeric(as.logical(correct_or_not)))
+
+```
+
+
+## Join tracing ratings
+```{r}
+d <- d %>%
+  left_join(by_subject_tracing_avg)
+```
+
+
+### Asserts to check all the joins
+```{r}
+# weird things were happening with category matching, check
+assert_that(length(unique(d$filename)) == length(unique(all_layer_class$image_name)))
+
+# every drawing should have all of these, regardless
+assert_that(sum(is.na(d$age_numeric))==0)
+assert_that(sum(is.na(d$category))==0)
+assert_that(sum(is.na(d$correct_or_not))==0)
+
+missing_meta <- d %>%
+  filter(is.na(num_strokes))
+
+assert_that(length(missing_meta$filename)==0)
+```
+
+```{r}
+## merged vgg classifications with meta
+save(d, file=here::here('data/preprocessed_data/merged_vgg_class_and_meta.RData'))
+
+##
+write_csv(d, file=here::here('data/preprocessed_data/merged_vgg_class_and_meta.csv'))
+
+```
+
+
+# Merge CLIP classifications
+```{R}
+clip_by_image <- clip_long %>%
+  mutate(category = str_replace(category,' ','.')) %>%
+  mutate(guessed_category = str_replace(guessed_category,' ','.'))  %>%
+  mutate(category = as.factor(category), guessed_category = as.factor(guessed_category)) %>%
+  group_by(kid_age, session_id, category) %>%
+  summarize(max_prob = max(prob), clip_category = guessed_category[prob == max_prob]) 
+
+```
+
+```{r}
+# There are 695 drawings for which clip isn't sure between 2 options 
+what <- clip_by_image %>%
+  group_by(kid_age, session_id, category) %>%
+  mutate(num_matches = length(clip_category)) %>%
+  filter(num_matches > 1) 
+```
+
+Approach is to randomly sample one of those categories and then count that as correct.
+```{r}
+clip_by_image_better <- clip_long %>%
+  rename(age_numeric = kid_age) %>%
+  mutate(category = str_replace(category,' ','.')) %>%
+  mutate(guessed_category = str_replace(guessed_category,' ','.'))  %>%
+  group_by(session_id, category, age_numeric) %>%
+  summarize(target_label_prob = prob[category==guessed_category], denom = sum(prob),  log_odds = log(target_label_prob / (denom - target_label_prob)), max_prob = max(prob), clip_category = guessed_category[prob == max_prob])  %>%
+  mutate(correct_or_not = (clip_category == category)) %>%
+  group_by(age_numeric, session_id, category) %>%
+  sample_n(1) 
+
+```
+
+
+```{r}
+d_clip <- clip_by_image_better %>% 
+  mutate(session_id = paste0("cdm_", session_id)) %>%
+  group_by(age_numeric, category, correct_or_not, session_id) %>%
+  left_join(all_meta, by=c("category", "age_numeric","session_id")) %>%
+  mutate(draw_duration = draw_duration_old) %>% # using end of last stroke - end of first stroke (is 0 for one stroke drawings)
+  mutate(run = substr(session_id,0,10)) %>% 
+  left_join(freq_by_category) %>%
+  mutate(correct_or_not = as.numeric(as.logical(correct_or_not))) %>%
+  left_join(by_subject_tracing_avg)
+
+
+```
+
+### Asserts to check all the joins
+```{r}
+# weird things were happening with category matching, check
+# assert_that(length(unique(d_clip$filename)) == length(unique(all_layer_class$image_name)))
+
+# every drawing should have all of these, regardless
+assert_that(sum(is.na(d_clip$age_numeric))==0)
+assert_that(sum(is.na(d_clip$category))==0)
+assert_that(sum(is.na(d_clip$correct_or_not))==0)
+
+missing_meta <- d_clip %>%
+  filter(is.na(num_strokes))
+
+assert_that(length(missing_meta$filename)==0)
+```
+
+```{r}
+## merged clip classifications with meta
+save(d_clip, file=here::here('data/preprocessed_data/merged_clip_class_and_meta.RData'))
+
+##
+write_csv(d_clip, file=here::here('data/preprocessed_data/merged_clip_class_and_meta.csv'))
+```
+
+
+# Session info
+```{R}
+pander(sessionInfo())
+```
+

@@ -8,7 +8,7 @@ writing/*
 
 # big files with svgs rendered
 preprocess_drawings/1_get_sketches/full_dataset_info/*
-
+analysis/_old/*
 experiments/museumstation/_old/*
 /experiments/recoggames/animalgame/code/node_modules/*
 

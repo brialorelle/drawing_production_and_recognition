@@ -1,0 +1,177 @@
+---
+title: "Main drawing ecognition analyses, validated with CLIP embeddings"
+author: "Bria Long"
+date: "5/8/2019, updated 10/2020, 7/2023"
+output: 
+  html_document:
+    toc: true
+    theme: united
+---
+
+# Preprocessing
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+library(assertthat)
+library(langcog)
+library(viridis)
+library(ggthemes)
+library(lme4)
+library(lmerTest)
+library(pander)
+
+```
+
+# Load data
+## Preprocessed recognition data
+```{R}
+load(file = here::here('data/recognition_data/recognition_data_preprocessed_without_vgg.RData'))
+
+```
+
+## CLIP classification data
+```{R}
+load(file = here::here('data/clip_outputs/fullset/clip_long.RData'))
+```
+
+```{r}
+clip_to_merge <- clip_long %>%
+  rename(producer_age_numeric = kid_age) %>%
+  mutate(session_id = paste0("cdm_", session_id)) %>%
+  mutate(category = str_replace(category,' ','.')) %>%
+  mutate(sketch_path = paste0(category,'_sketch_age',producer_age_numeric,'_',session_id)) %>%
+  filter(category == guessed_category) %>%
+  rename(clip_prob = prob) %>%
+  select(sketch_path, clip_prob)
+```
+
+
+```{R}
+# all_meta <- read_csv(file = here::here('data/drawings/stringent_cleaned_dataset_meta/all_object_metadata_cleaned.csv')) %>%
+#   as_tibble() %>%
+#   mutate(category = str_split_fixed(category,' ',2)[,2]) %>%
+#   mutate(category = str_replace(category,' ','.'))  # ice cream
+# 
+# test <- all_meta %>%
+#   filter(category=='fish', age == 'age7', session_id == 'cdm_run_v21525455905420')
+```
+
+## Join datasets
+```{r}
+recog_by_clip <- kids_sketches_d %>%
+  left_join(clip_to_merge, by=c('sketch_path')) %>%
+  rename(log_odds = clip_prob) %>%
+  filter(!is.na(log_odds))
+```
+
+Note that some sketches (271) appeared in recoggames but not in big filtered dataset 
+Super frustrating; probably mismatches in filtering/manual selection process.
+Some sketches from early CDM runs (manually filtered)
+
+```{r}
+sketch_mismatch <- kids_sketches_d %>%
+  filter(!sketch_path %in% clip_to_merge$sketch_path) %>%
+  distinct(sketch_path, intended_category) %>%
+  group_by(intended_category) %>%
+  summarize(num_sketches = length(unique(sketch_path)))
+```
+
+```{R}
+# fish_sketch_age7_cdm_run_v21525455905420
+
+# what <- clip_long %>%
+#   filter(category=='fish', kid_age == 7, session_id == 'run_v21525455905420')
+```
+
+```{r}
+
+# assert_that(sum(is.na(recog_by_clip$log_odds))==0)
+# 
+# assert_that(length(unique(kids_sketches_d$sketch_path))==length(unique(recog_by_clip$sketch_path)))
+
+```
+
+
+```{r}
+# what <- recog_by_clip %>%
+#   filter(is.na(clip_prob)) %>%
+#   select(sketch_path) %>%
+#   distinct(sketch_path) %>%
+#   filter(!sketch_path %in% clip_to_merge$sketch_path)
+```
+
+
+## Compute distincitveness bins (used for visualizations) join classifications & recognition data
+```{r}
+num_bins=10
+
+## compute bins for distinctiveness
+sketch_by_distinctiveness <- clip_to_merge %>%
+  mutate(distinct_index = ntile(clip_prob,num_bins)) %>% ## compute bins based on log odds over entire dataset
+  select(sketch_path, distinct_index, clip_prob)
+
+## join distinctiveness bins for each sketch in dataset
+all_joined <- kids_sketches_d %>%
+  left_join(sketch_by_distinctiveness) %>%
+  filter(!is.na(clip_prob))
+```
+
+## How does distinctiveness bin vary with probilities?
+```{r}
+ggplot(all_joined, aes(x=distinct_index, y=clip_prob)) +
+  geom_jitter(alpha=.03) +
+  facet_wrap(~intended_category) +
+  theme_few()
+```
+
+
+### Plot distinctivenss by age interaction
+```{r}
+## Panel B in ms figure
+distinct_by_age <- all_joined %>%
+  group_by(recognizer_age_numeric, distinct_index) %>%
+  multi_boot_standard(col='correct_or_not') %>%
+  group_by(distinct_index) %>%
+  mutate(recognizer_age_name = paste0(as.character(recognizer_age_numeric), '-year-olds'))
+```
+
+
+```{R}
+ ggplot(distinct_by_age, aes(x=distinct_index, y=mean, col=as.factor(recognizer_age_numeric))) +
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), alpha=.8, size=.2) +
+  geom_smooth(alpha=.1, span=4, size=.5, method = 'lm') +
+  # facet_wrap(~recognizer_age_numeric, nrow=2) +
+  theme_few(base_size = 10) + 
+  xlab('Classifier evidence') +
+  ylab('Proportion drawings recognized') +
+  theme(legend.position='none') + 
+  scale_color_viridis(discrete=TRUE) +
+  scale_x_continuous(
+    breaks=c(2,9),
+    labels=c(' Low ',' High ')
+        ) +
+  theme(axis.ticks.x=element_blank(), aspect.ratio=1) +
+  geom_hline(yintercept=.25, linetype='dashed',color='grey') +
+  ylim(0,1)
+  
+
+ggsave(here::here('data/figures_out/Appendix_B1_CLIP_distinctByAge.pdf'), height=3, width=3, units='in')
+
+write_csv(distinct_by_age, file = here::here('data/figures_csvs/Appendix_B1_CLIP_distinctByAge.csv'))
+```
+
+```{r}
+model_glmer <- glmer(correct_or_not ~ scale(clip_prob)*scale(recognizer_age_numeric) + (scale(clip_prob)|intended_category) + (1|sessionId),  data = all_joined, family='binomial')
+out = summary(model_glmer)
+
+round(out$coefficients,3)
+xtable::xtable(summary(out)$coef, digits=3, caption = "Model coefficients of a GLMM predicting visual recognition performance as a function of recognizer age and visual 'distinctiveness' metrics (here, cross-modal CLIP probability,see Methods")
+
+```
+
+
+```{r}
+pander(sessionInfo())
+```

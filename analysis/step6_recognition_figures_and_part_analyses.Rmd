@@ -1,0 +1,402 @@
+---
+title: "Create figures for recognition data"
+author: "Bria Long"
+date: '2023-07-26'
+output: html_document
+---
+
+
+# Librarites and setup
+```{r message = FALSE}
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(ggthemes)
+library(pander)
+library(tidytext) # for plotting
+library(knitr) # for html rendering
+library(langcog) 
+library(viridis) 
+library(xtable)
+
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=FALSE, warning=FALSE, message=FALSE)
+```
+
+# How does kid and model recognition vary with object part annotations? 
+
+## Import recognition data and calculate per sketch 
+```{r}
+load(file = here::here('data/recognition_data/all_recognition_data_preprocessed.RData'))
+```
+
+## Load preprocessed part annotations
+```{r}
+load(file = here::here('data/part_annotations_processed/merged_annotations.RData'))
+
+```
+
+## Calculate recognition by sketch for models and kids
+```{r}
+# all joined  = joined model / kid recognition
+recognition_by_sketch <- all_joined %>%
+  ungroup() %>%
+  # keep kids of all ages
+  rename(category = intended_category) %>%
+  group_by(sketch_path, category) %>%
+  mutate(num_trials_per_sketch = n()) %>%
+  # but need 5 or more trials per sketch for image level analyses
+  filter(num_trials_per_sketch > 4) %>%
+  dplyr::summarize(model_correct = mean(model_correct_or_not, na.rm=TRUE), kid_correct = mean(correct_or_not, na.rm=TRUE), log_odds = mean(log_odds)) %>%
+  filter(!is.na(log_odds)) # filter any sketches that were not recognized by model due to counterbalancing
+```
+### Sanity check: model vs. kid recognition
+```{r}
+ggplot(recognition_by_sketch, aes(x=kid_correct, y=model_correct)) +
+  geom_jitter(width=.05, height=.05, alpha=.2)  +
+  geom_smooth(method='lm')
+
+cor.test(recognition_by_sketch$kid_correct, recognition_by_sketch$model_correct)
+```
+
+### Descriptives of this set
+```{R}
+num_participants = length(unique(all_joined$sessionId))
+
+participant_age <- all_joined %>%
+  distinct(sessionId, recognizer_age_numeric) %>%
+  summarize(avg_age = mean(recognizer_age_numeric))
+```
+
+
+
+### Join recognition and annotation data
+```{R}
+parts_by_recognition <- d_agree_labels %>%
+  mutate(sketch_path = as.factor(str_split_fixed(filename,'.png',2)[,1])) %>%
+  group_by(sketch_path, filename, category, age_numeric, gameType) %>%
+  summarize(count_parts = length(unique(roi_labelName)), count_unint = sum(sum(roi_labelName == 'unintelligible')>0), count_strokes = length(strokeIndex)) %>%
+  mutate(count_parts = count_parts - count_unint) %>%
+  left_join(recognition_by_sketch) %>%
+  filter(!is.na(kid_correct)) %>%
+  filter(!is.na(model_correct))
+
+num_sketches_recognition_included = length(parts_by_recognition$sketch_path)
+
+```
+
+```{r}
+all_joined_with_parts <- all_joined %>%
+  left_join(parts_by_recognition %>% select(sketch_path, count_parts)) %>%
+  filter(!is.na(count_parts)) # not all sketches had agreement that were recognized
+```
+
+
+
+This led to a set of `r num_sketches_recognition_included` that had greater than 5 recognition trials from children aged `r participant_age` years, model recognition scores, and at least one agreed upon part annotation.
+
+
+
+# Create recognition dat afigures
+```{r}
+by_recognizer_age <- all_joined %>%
+  filter(producer_age != 'photo') %>%
+  group_by(sessionId, recognizer_age_numeric) %>%
+  summarize(avg_correct = mean(correct_or_not), num_trials = n()) %>%
+  filter(num_trials > 5) %>%
+  group_by(recognizer_age_numeric) %>%
+  multi_boot_standard(col = 'avg_correct')
+
+by_each_recognizer <-  all_joined %>%
+  group_by(sessionId,recognizer_age_numeric) %>%
+  filter(producer_age != 'photo') %>%
+  summarize(avg_correct = mean(correct_or_not), num_trials = n()) %>%
+  filter(num_trials > 5)
+
+```
+
+###  Figure 6A. By recognizer age
+```{r}
+base_size_chosen=12
+ggplot(by_recognizer_age,aes(x=recognizer_age_numeric, y=mean, col = recognizer_age_numeric)) +
+  theme_few(base_size = base_size_chosen) +
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper)) + 
+  geom_jitter(data = by_each_recognizer, aes(x=recognizer_age_numeric, y=avg_correct, size=num_trials), alpha=.05, width=.1, height=.01) +
+  scale_color_viridis(discrete = "FALSE") + 
+  scale_size_area(max_size = 5) + 
+  ylab('Proportion drawings recognized') +
+  ylim(0, 1) +
+  geom_hline(yintercept = .25, linetype = 'dashed', color='grey')  +
+  geom_smooth(color = 'grey', span=5) +
+  xlab('Age of child recognizing (yrs)') +
+  theme(legend.position='none', aspect.ratio = 1) + 
+  # labs(title='Drawing recognition by age') +
+  scale_x_continuous(breaks = seq(3,10,1)) 
+
+ggsave(here::here('data/figures_out/Figure6A_drawing_recognition_by_age.pdf'),width=3, height=3, units='in', useDingbats=FALSE)
+
+write_csv(by_recognizer_age, path = here::here('data/figures_csvs/Figure6A_drawing_recognition_by_age.pdf'))
+
+```
+
+### Figure 6B. By classifier evidence
+```{r}
+correct_by_distinct <- all_joined %>%
+  group_by(recognizer_age_numeric, distinct_index) %>%
+  multi_boot_standard(col = 'correct_or_not')
+  
+```
+
+```{r}
+ggplot(correct_by_distinct, aes(x=distinct_index, y=mean, col=as.factor(recognizer_age_numeric))) +
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), alpha=.8, size=.2) +
+  geom_smooth(alpha=.1,  span=5, size=.5) +
+  theme_few(base_size = 12) + 
+  xlab('Classifier evidence') +
+  ylab('Proportion drawings recognized') +
+  theme(legend.position='none') + 
+  scale_color_viridis(discrete=TRUE) +
+  scale_x_continuous(
+    breaks=c(2,9),
+    labels=c(' Low ',' High ')
+        ) +
+  facet_wrap(~recognizer_age_numeric, nrow=2) +
+  theme(axis.ticks.x=element_blank(), aspect.ratio=1) +
+  geom_hline(yintercept=.25, linetype='dashed',color='grey') +
+  ylim(0,1)
+
+ggsave(here::here('data/figures_out/Figure6b_recog_by_classifier.pdf'), width=3, height=3, units='in', useDingbats=FALSE)
+
+write_csv(correct_by_distinct, path = here::here('data/figures_csvs/Figure6b_recog_by_classifier.pdf'))
+```
+
+# Join recognition and annotation data
+```{R}
+parts_by_recognition <- d_agree_labels %>%
+  mutate(sketch_path = as.factor(str_split_fixed(filename,'.png',2)[,1])) %>%
+  group_by(sketch_path, filename, category, age_numeric, gameType) %>%
+  summarize(count_parts = length(unique(roi_labelName)), count_unint = sum(sum(roi_labelName == 'unintelligible')>0), count_strokes = length(strokeIndex)) %>%
+  mutate(count_parts = count_parts - count_unint) %>%
+  left_join(recognition_by_sketch) %>%
+  filter(!is.na(kid_correct)) %>%
+  filter(!is.na(model_correct))
+
+num_sketches_recognition_included = length(parts_by_recognition$sketch_path)
+
+```
+## Appendix figure: recognition by categorys 
+```{R}
+parts_by_recognition <- parts_by_recognition %>%
+  mutate(count_parts_bin = ntile(count_parts,10)) 
+
+ggplot(data=parts_by_recognition, aes(y=kid_correct,  x=count_parts, color=category, group=category)) +
+  geom_jitter(width=.2, height=.05, alpha=.05) +
+  theme_few(base_size=16) +
+  geom_smooth(span=10, alpha=.1) +
+  ylim(0,1) +
+  ylab('Proportion drawings recognized') +
+  xlab('Number of unique object parts') +
+  theme(aspect.ratio=1, legend.position='right',legend.text=element_text(size=6)) +
+  scale_x_continuous(breaks=c(0,3,6,9)) +
+  guides(color=guide_legend(title="Category", ncol=1))
+
+ggsave(here::here('data/figures_out/Appendix_B4_parts_by_recognition_panel.pdf'), width=6, height=6)
+
+## write csv
+```
+
+
+## Not in paper, but same trends with CIs and binned parts  
+```{r}
+parts_by_category <- all_joined_with_parts %>%
+  ungroup() %>%
+  mutate(part_index = ntile(count_parts,10)) %>%
+  group_by(category, part_index) %>%
+  multi_boot_standard(col='correct_or_not')
+```
+
+```{r}
+ ggplot(parts_by_category, aes(x=part_index, y=mean, col=category, group=category)) +
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), alpha=.8, size=.2) +
+  geom_smooth(alpha=.1,  span=4 ) +
+  # facet_wrap(~category, nrow=2) +
+  theme_few(base_size = 10) + 
+  xlab('Number of unique parts') +
+  ylab('Proportion drawings recognized') +
+  theme(legend.position='right') + 
+  # scale_color_viridis(discrete=TRUE) +
+  scale_x_continuous(
+    breaks=c(2,9),
+    labels=c(' Low ',' High ')
+        ) +
+  theme(axis.ticks.x=element_blank(), aspect.ratio=1) +
+  geom_hline(yintercept=.25, linetype='dashed',color='grey') +
+  ylim(0,1)
+```
+
+
+
+## Calculate parts x recognizer age
+```{r}
+parts_by_age <- all_joined_with_parts %>%
+  mutate(part_index = ntile(count_parts,10)) %>%
+  group_by(recognizer_age_numeric, part_index) %>%
+  multi_boot_standard(col='correct_or_not') 
+```
+
+
+## Figure 6C. Plot parts x recognizer age
+```{R}
+ parts_by_age_plot <- ggplot(parts_by_age, aes(x=part_index, y=mean, col=as.factor(recognizer_age_numeric))) +
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), alpha=.8, size=.2) +
+  geom_smooth(alpha=.1,  span=4, size=.25) +
+  theme_few(base_size = 12) + 
+  xlab('Number of unique object parts') +
+  ylab('Proportion drawings recognized') +
+  theme(legend.position='none') + 
+  scale_color_viridis(discrete=TRUE) +
+  scale_x_continuous(
+    breaks=c(2,9),
+    labels=c(' Low ',' High ')
+        ) +
+  theme(axis.ticks.x=element_blank(), aspect.ratio=1) +
+  geom_hline(yintercept=.25, linetype='dashed',color='grey') +
+  ylim(0,1) 
+
+
+ggsave(here::here('data/figures_out/Figure6C_kid_recognition_by_unique_parts.pdf'), width=3, height=3, units='in',useDingbats = FALSE)
+
+write_csv(parts_by_age, path = here::here('data/figures_csvs/Figure6C_kid_recognition_by_unique_parts.csv'))
+
+```
+
+
+# Inferential stats:  Does children's ability to use parts during recognition change with age?
+
+## Create data structure
+```{r}
+
+### Unit of anlaysis -- trial-level recognition data, sessionId = recognizer ID
+
+all_joined_with_parts <- all_joined %>%
+  left_join(parts_by_recognition %>% select(sketch_path, count_parts)) %>%
+  mutate(count_parts_scaled= scale(count_parts), age_scaled = scale(recognizer_age_numeric)) %>%
+  filter(!is.na(count_parts)) # not all drawings had agreement
+
+```
+
+##  Model recognition data with 2nd order polynomial andcount parts
+```{r}
+model_glmer <- glmer(correct_or_not ~ poly(count_parts_scaled,2)*age_scaled + (count_parts_scaled|intended_category) + (1|sessionId),  data = all_joined_with_parts, family='binomial')
+
+summary(model_glmer)
+```
+```{R}
+xtable(summary(model_glmer)$coefficients, digits=3)
+```
+
+
+<!-- \begin{table}[ht] -->
+<!-- \centering -->
+<!-- \begin{tabular}{rrrrr} -->
+<!--   \hline -->
+<!--  & Estimate & Std. Error & z value & Pr($>$$|$z$|$) \\  -->
+<!--   \hline -->
+<!-- (Intercept) & 0.047 & 0.232 & 0.204 & 0.839 \\  -->
+<!--   poly(count\_parts\_scaled, 2)1 & 129.392 & 10.042 & 12.885 & <0.001 \\  -->
+<!--   poly(count\_parts\_scaled, 2)2 & -34.984 & 3.243 & -10.788 & <0.001 \\  -->
+<!--   Age & 0.340 & 0.020 & 17.042 & 0.000 \\  -->
+<!--   poly(count\_parts\_scaled, 2)1:age\_scaled & 12.696 & 2.709 & 4.687 & <0.001 \\  -->
+<!--   poly(count\_parts\_scaled, 2)2:age\_scaled & -8.948 & 2.461 & -3.635 & <0.001 \\  -->
+<!--    \hline -->
+<!-- \end{tabular} -->
+<!-- \end{table} -->
+
+
+
+# Appendix: Part inclusion/emphasis by binned model classification per category
+
+```{r}
+load(file = here::here('data/part_annotations_processed/part_emphasis.RData'))
+```
+
+```{r}
+binned_model_recognition_by_sketch_for_emphasis <-  recognition_by_sketch %>%
+  ungroup() %>%
+  group_by(category) %>% # construct bins WITHIN categories
+  mutate(model_correct_bin = ntile(log_odds,4))
+
+binned_count_recognition_by_sketch <- binned_model_recognition_by_sketch_for_emphasis %>%
+  group_by(category, model_correct_bin) %>%
+  summarize(count_images_bin = length(unique(sketch_path)))
+```
+
+
+```{r}
+part_emphasis_recognition_binned <- part_emphasis_all %>%  
+  mutate(sketch_path = as.factor(str_split_fixed(filename,'.png',2)[,1])) %>%
+  left_join(binned_model_recognition_by_sketch_for_emphasis) %>%
+  left_join(binned_count_recognition_by_sketch)
+```
+
+```{r}
+# get emphasized parts without recognition
+top_parts_emphasis <- part_emphasis_all %>%
+  group_by(category, roi_labelName) %>%
+  filter(!roi_labelName %in% c('body','head')) %>%
+  summarize(avg_emphasis = mean(emphasis), count_drawings = n()) %>%
+  group_by(category) %>%
+  slice_max(n=5, order_by=count_drawings)
+#
+```
+
+```{r}
+part_emphasis_top_4_by_model_bin <- part_emphasis_recognition_binned %>%
+  right_join(top_parts_emphasis %>% select(category, roi_labelName)) %>%
+  group_by(category, model_correct_bin, roi_labelName,count_images_bin) %>%
+  dplyr::summarize(avg_emphasis = mean(emphasis), count_drawings_with_part = length(unique(filename))) %>%
+  mutate(prop_drawings = count_drawings_with_part / count_images_bin)
+
+```
+```{r}
+# part_names = unique(part_emphasis_top_4_by_model_bin$roi_labelName)
+part_emphasis_top_4_by_model_bin <- part_emphasis_top_4_by_model_bin %>%
+  mutate(label = as.factor(roi_labelName), levels =  unique(roi_labelName))
+```
+
+```{r}
+ggplot(data = part_emphasis_top_4_by_model_bin, aes(x=model_correct_bin, y=prop_drawings, col=label)) +
+  geom_point(aes(size = avg_emphasis, alpha=.2)) +
+  # geom_linerange(aes(ymin = ci_lower, ymax = ci_upper), alpha=.5) +
+  facet_wrap(~category, nrow=1) +
+  theme_few(base_size=8) +
+  # geom_line() +
+  geom_line(stat='smooth',alpha=.2, span=10) +
+  # stat_smooth(geom="line", alpha=0.3, size=.5, span=10) +
+  # geom_smooth(aes(group=roi_labelName), span=10, alpha=.01) +
+  # scale_color_viridis(option = 'F', discrete=TRUE) +
+  ylab('Proportion drawings with object part') +
+  xlab('Binned classifier evidence (VGG-19 classifications)') +
+  theme(legend.position = 'none', aspect.ratio = 1)  +
+  ylim(0,1) +
+  facet_wrap(~category, nrow=2, scales = 'free_x') +
+  scale_x_continuous(
+    limits=c(.5,4.5),
+    breaks=c(1,4),
+    labels=c(' Low ',' High ')
+        ) +
+  ggrepel::geom_label_repel(data =part_emphasis_top_4_by_model_bin %>% filter(model_correct_bin==1), aes(label = roi_labelName), max.overlaps=10, size=2, box.padding=.1, label.padding=.1)
+
+ggsave(here::here('data/figures_out/Appendix_A9_part_emphasis_by_model_bin.pdf'),units = 'in', height = 3, width = 8)
+
+
+write_csv(part_emphasis_top_4_by_model_bin, path = here::here('data/figures_csvs/Appendix_A9_part_emphasis_by_model_bin.csv'))
+```
+
+# Session info
+```{r}
+pander(sessionInfo())
+```
