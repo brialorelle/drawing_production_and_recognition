@@ -34,3 +34,4 @@ history.csv
 *.png
 *.tex
 ._*
+data/drawings/stringent_cleaned_dataset.zip
