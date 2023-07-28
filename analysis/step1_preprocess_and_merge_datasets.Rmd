@@ -86,6 +86,21 @@ by_subject_tracing_avg <- all_tracings %>%
   summarize(avg_tracing_rating = mean(rating))
 ```
 
+```{r}
+tracing_correlation <- all_tracings %>%
+  distinct(session_id, category, age, rating) %>% 
+  group_by(session_id) %>%
+  mutate(num_tracings = length(unique(category))) %>%
+  filter(num_tracings == 2) %>%
+  select(session_id, category, rating) %>%
+  pivot_wider(names_from = 'category', values_from = 'rating')
+
+tracing_cor = cor.test(tracing_correlation$square, tracing_correlation$shape)
+```
+
+We found that tracing scores produced by the same participant were moderately correlated ($r$ = .60, $t$ = 61.93, $df$ = 6754, $p$ < .001, \textit{N} = `r length(unique(tracing_correlation$session_id))`), despite the irregular shape being harder to trace than the square.
+
+
 ### Load category animacy/size (hardcoding)
 ```{r}
 animacy_csv <- read_csv(here::here('data/drawings/category_metadata/animacy.csv')) %>%

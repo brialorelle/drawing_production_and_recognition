@@ -462,6 +462,19 @@ by_subject_tracing_avg &lt;- all_tracings %&gt;%
   distinct(session_id, category, age, rating) %&gt;% 
   group_by(session_id) %&gt;%
   summarize(avg_tracing_rating = mean(rating))</code></pre>
+<pre class="r"><code>tracing_correlation &lt;- all_tracings %&gt;%
+  distinct(session_id, category, age, rating) %&gt;% 
+  group_by(session_id) %&gt;%
+  mutate(num_tracings = length(unique(category))) %&gt;%
+  filter(num_tracings == 2) %&gt;%
+  select(session_id, category, rating) %&gt;%
+  pivot_wider(names_from = &#39;category&#39;, values_from = &#39;rating&#39;)
+
+tracing_cor = cor.test(tracing_correlation$square, tracing_correlation$shape)</code></pre>
+<p>We found that tracing scores produced by the same participant were
+moderately correlated (<span class="math inline">\(r\)</span> = .60,
+<span class="math inline">\(t\)</span> = 61.93, <span class="math inline">\(df\)</span> = 6754, <span class="math inline">\(p\)</span> &lt; .001, = 6756), despite the
+irregular shape being harder to trace than the square.</p>
 </div>
 <div id="load-category-animacysize-hardcoding" class="section level3">
 <h3>Load category animacy/size (hardcoding)</h3>
