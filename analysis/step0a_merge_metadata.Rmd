@@ -1,5 +1,5 @@
 ---
-title: "Merge all metdata"
+title: "Merge all metdata and count participants/drawings"
 author: "Bria Long"
 date: "9/23/2020, finalized 7/2023"
 output:
@@ -13,6 +13,7 @@ output:
 ```{r}
 library(tidyverse)
 library(pander)
+library(knitr)
 ```
 
 ```{r include=FALSE}
@@ -73,6 +74,15 @@ all_meta <- all_meta %>%
   full_join(cogsci_2019)
 
 write_csv(all_meta, path = here::here('data/drawings/stringent_cleaned_dataset_meta', paste0('all_object_metadata_cleaned.csv')))
+```
+
+# Appendix A1: Detailed demographics
+```{r}
+all_meta %>%
+  group_by(age_numeric) %>%
+  summarize(num_participants = length(unique(session_id)), num_draiwngs = length(unique(filename))) %>%
+  kable()
+  
 ```
 
 
