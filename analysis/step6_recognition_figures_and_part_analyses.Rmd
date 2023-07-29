@@ -37,6 +37,8 @@ load(file = here::here('data/recognition_data/all_recognition_data_preprocessed.
 ```{r}
 load(file = here::here('data/part_annotations_processed/merged_annotations.RData'))
 
+
+
 ```
 
 ## Calculate recognition by sketch for models and kids
@@ -53,6 +55,8 @@ recognition_by_sketch <- all_joined %>%
   dplyr::summarize(model_correct = mean(model_correct_or_not, na.rm=TRUE), kid_correct = mean(correct_or_not, na.rm=TRUE), log_odds = mean(log_odds)) %>%
   filter(!is.na(log_odds)) # filter any sketches that were not recognized by model due to counterbalancing
 ```
+
+
 ### Sanity check: model vs. kid recognition
 ```{r}
 ggplot(recognition_by_sketch, aes(x=kid_correct, y=model_correct)) +
@@ -138,13 +142,14 @@ ggplot(by_recognizer_age,aes(x=recognizer_age_numeric, y=mean, col = recognizer_
 
 ggsave(here::here('data/figures_out/Figure6A_drawing_recognition_by_age.pdf'),width=3, height=3, units='in', useDingbats=FALSE)
 
-write_csv(by_recognizer_age, path = here::here('data/figures_csvs/Figure6A_drawing_recognition_by_age.pdf'))
+write_csv(by_recognizer_age, path = here::here('data/figures_csvs/Figure6A_drawing_recognition_by_age.csv'))
 
 ```
 
 ### Figure 6B. By classifier evidence
 ```{r}
 correct_by_distinct <- all_joined %>%
+  filter(!is.na(distinct_index)) %>% # filter any sketches that were not recognized by model due to counterbalancing
   group_by(recognizer_age_numeric, distinct_index) %>%
   multi_boot_standard(col = 'correct_or_not')
   
@@ -153,7 +158,7 @@ correct_by_distinct <- all_joined %>%
 ```{r}
 ggplot(correct_by_distinct, aes(x=distinct_index, y=mean, col=as.factor(recognizer_age_numeric))) +
   geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), alpha=.8, size=.2) +
-  geom_smooth(alpha=.1,  span=5, size=.5, method='lm') +
+  geom_smooth(alpha=.1,  span=5, size=.5) +
   theme_few(base_size = 12) + 
   xlab('Classifier evidence') +
   ylab('Proportion drawings recognized') +
@@ -169,7 +174,7 @@ ggplot(correct_by_distinct, aes(x=distinct_index, y=mean, col=as.factor(recogniz
 
 ggsave(here::here('data/figures_out/Figure6b_recog_by_classifier.pdf'), width=3, height=3, units='in', useDingbats=FALSE)
 
-write_csv(correct_by_distinct, path = here::here('data/figures_csvs/Figure6b_recog_by_classifier.pdf'))
+write_csv(correct_by_distinct, path = here::here('data/figures_csvs/Figure6b_recog_by_classifier.csv'))
 ```
 
 # Join recognition and annotation data
@@ -338,8 +343,8 @@ binned_count_recognition_by_sketch <- binned_model_recognition_by_sketch_for_emp
 ```{r}
 part_emphasis_recognition_binned <- part_emphasis_all %>%  
   mutate(sketch_path = as.factor(str_split_fixed(filename,'.png',2)[,1])) %>%
-  left_join(binned_model_recognition_by_sketch_for_emphasis) %>%
-  left_join(binned_count_recognition_by_sketch)
+  right_join(binned_model_recognition_by_sketch_for_emphasis) %>%
+  right_join(binned_count_recognition_by_sketch)
 ```
 
 ```{r}

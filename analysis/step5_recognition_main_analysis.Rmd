@@ -530,7 +530,7 @@ ggplot(both_category,aes(x=recognizer_age_numeric, y=mean, col=recognizer_age_nu
 
 ggsave(here::here('data/figures_out/Appendix_B3_recognition_by_category.pdf'), units='in', width=7.5)
 
-write_csv(both_category, file = here::here('data/figures_csvs/Appendix_B3_recognition_by_category.pdf'))
+write_csv(both_category, file = here::here('data/figures_csvs/Appendix_B3_recognition_by_category.csv'))
 ```
 
 
