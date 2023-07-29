@@ -502,7 +502,10 @@ ggplot(anim_cor_by_age, aes(x=age_numeric,y=mean, color=age_numeric)) +
 
 
 ggsave(here::here('data/figures_out/Figure3b_animacy_classification.pdf'), width = 1.5, height = 1.5, units = 'in')
+
 write_csv(anim_cor_by_age, file = here::here('data/figures_csvs/Figure3b_animacy_classification.csv'))
+
+write_csv(anim_cor_by_category_by_age, file = here::here('data/figures_csvs/Figure3b_animacy_classification_by_category.csv'))
 
 
 ```
@@ -546,6 +549,8 @@ ggplot(size_cor_by_age, aes(x=age_numeric,y=mean, color=age_numeric)) +
 ggsave(here::here('data/figures_out/Figure3b_size_classification.pdf'), width = 1.5, height = 1.5, units = 'in')
 
 write_csv(size_cor_by_age, file = here::here('data/figures_csvs/Figure3b_size_classification.csv'))
+
+write_csv(size_cor_by_category_by_age, file = here::here('data/figures_csvs/Figure3b_size_classification_each_category.csv'))
 ```
 
 # Drawings contain different semantic parts across development
