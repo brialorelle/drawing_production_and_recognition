@@ -8,7 +8,6 @@ The repository is organized into the following sections:
 *Data* - Contains both raw and preprocessed data for generating the anlayses.
 Inside "Data", there are several notable folders:
 
-
 Figures_out - contains the pdfs of the figures in the paper
 Figures_csv - contains the preprocessed data for each figure
 Drawings - contains .zip files with the pngs of the drawings
@@ -43,4 +42,19 @@ https://osf.io/qymjr/
 and the following preprint:
 https://psyarxiv.com/5yv7x/
 
-Please contact Bria Long (brialorelle@gmail.com) with questions about the proejct.
+## Installation
+The following repository integrates tools from open-source software packages to create the dataset and anlayses described in the paper; this is not a software package.
+
+If you wish to run the analyses in these notebooks on preprocessed data, 
+–clone this repository
+–download R and RStudio (see https://posit.co/download/rstudio-desktop/)
+–install the required packages in each script (many are shared across scripts, and a list of the most common libraries are in the anlaysis directory.)
+–Click the "knit" icon in RSTudio to generate html files with the analyses from scratch.
+–The entire run time of all 8 notebooks should be approprimately 10-20 minutes.
+
+Re-extracting the model embeddings for these datasets takes considerably more time and access to specialized hardware (GPUs). The preprocessed model embeddings are thus provided in the repository for re-use.
+
+The main statistical software has been tested in RStudio with R Version R version 4.1.3 on MacOX 13.4.1, but these open-source distributions of RStudio and standard packages are reliably maintained and tend to be backwards compatible.
+
+
+Please contact Bria Long (brialorelle@gmail.com) with questions.
