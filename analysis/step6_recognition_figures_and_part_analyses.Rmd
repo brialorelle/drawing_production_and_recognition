@@ -163,7 +163,6 @@ ggplot(correct_by_distinct, aes(x=distinct_index, y=mean, col=as.factor(recogniz
     breaks=c(2,9),
     labels=c(' Low ',' High ')
         ) +
-  # facet_wrap(~recognizer_age_numeric, nrow=2) +
   theme(axis.ticks.x=element_blank(), aspect.ratio=1) +
   geom_hline(yintercept=.25, linetype='dashed',color='grey') +
   ylim(0,1)
