@@ -153,7 +153,7 @@ correct_by_distinct <- all_joined %>%
 ```{r}
 ggplot(correct_by_distinct, aes(x=distinct_index, y=mean, col=as.factor(recognizer_age_numeric))) +
   geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), alpha=.8, size=.2) +
-  geom_smooth(alpha=.1,  span=5, size=.5) +
+  geom_smooth(alpha=.1,  span=5, size=.5, method='lm') +
   theme_few(base_size = 12) + 
   xlab('Classifier evidence') +
   ylab('Proportion drawings recognized') +
@@ -163,7 +163,7 @@ ggplot(correct_by_distinct, aes(x=distinct_index, y=mean, col=as.factor(recogniz
     breaks=c(2,9),
     labels=c(' Low ',' High ')
         ) +
-  facet_wrap(~recognizer_age_numeric, nrow=2) +
+  # facet_wrap(~recognizer_age_numeric, nrow=2) +
   theme(axis.ticks.x=element_blank(), aspect.ratio=1) +
   geom_hline(yintercept=.25, linetype='dashed',color='grey') +
   ylim(0,1)
@@ -205,7 +205,8 @@ ggplot(data=parts_by_recognition, aes(y=kid_correct,  x=count_parts, color=categ
 
 ggsave(here::here('data/figures_out/Appendix_B4_parts_by_recognition_panel.pdf'), width=6, height=6)
 
-## write csv
+write_csv(parts_by_recognition, file = here::here('data/figures_csvs/Appendix_B4_parts_by_recognition_panel.csv'))
+
 ```
 
 

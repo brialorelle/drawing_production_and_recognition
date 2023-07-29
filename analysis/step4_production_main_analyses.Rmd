@@ -149,7 +149,7 @@ ggplot(freq_by_category_plot, aes(x=category, y=mean, col=childs_age)) +
 
 ggsave(here::here('data/figures_out/Appendix_A6_estimated_frequency.pdf'), units='in', height=4, width=8)
 
-write_csv(freq_by_category_plot, file = here::here('data/figures_csvs/Appendix_A6_estimated_frequency.pdf'))
+write_csv(freq_by_category_plot, file = here::here('data/figures_csvs/Appendix_A6_estimated_frequency.csv'))
 
 
 ```
@@ -371,7 +371,7 @@ ggplot(merged, aes(age_numeric,mean*100, color=bin_name, group=bin_name, col=bin
 
 ggsave(here::here('data/figures_out/Appendix_A7_visuomotor_control_wide.pdf'), units='in')
 
-write_csv(merged, here::here('data/figures_csvs/Appendix_A7_visuomotor_control_wide.pdf'))
+write_csv(merged, here::here('data/figures_csvs/Appendix_A7_visuomotor_control_wide.csv'))
 
 ```
 
@@ -502,7 +502,7 @@ ggplot(anim_cor_by_age, aes(x=age_numeric,y=mean, color=age_numeric)) +
 
 
 ggsave(here::here('data/figures_out/Figure3b_animacy_classification.pdf'), width = 1.5, height = 1.5, units = 'in')
-write_csv(anim_cor_by_age, file = here::here('data/figures_csvs/Figure3b_animacy_classification.pdf'))
+write_csv(anim_cor_by_age, file = here::here('data/figures_csvs/Figure3b_animacy_classification.csv'))
 
 
 ```
@@ -545,7 +545,7 @@ ggplot(size_cor_by_age, aes(x=age_numeric,y=mean, color=age_numeric)) +
   
 ggsave(here::here('data/figures_out/Figure3b_size_classification.pdf'), width = 1.5, height = 1.5, units = 'in')
 
-write_csv(size_cor_by_age, file = here::here('data/figures_csvs/Figure3b_size_classification.pdf'))
+write_csv(size_cor_by_age, file = here::here('data/figures_csvs/Figure3b_size_classification.csv'))
 ```
 
 # Drawings contain different semantic parts across development
@@ -602,7 +602,7 @@ ggplot(data=unique_by_age_by_category, aes(x=age_numeric, y=mean, color=age_nume
 
 ggsave(here::here('data/figures_out/Appendix_A8_unique_parts_by_age.pdf'), width=8, units='in')
 
-write_csv(unique_by_age_by_category, file = here::here('data/figures_csvs/Appendix_A8_unique_parts_by_age.pdf'))
+write_csv(unique_by_age_by_category, file = here::here('data/figures_csvs/Appendix_A8_unique_parts_by_age.csv'))
 
        
 ```
@@ -662,7 +662,7 @@ ggplot(data = part_emphasis_top_4_plot, aes(x=age_numeric, y=prop_drawings, col=
 
 ggsave(here::here('data/figures_out/Figure4_part_emphasis_by_age.pdf'),units = 'in', height = 4, width = 9)
 
-write_csv(part_emphasis_top_4_plot, file = here::here('data/figures_csvs/Figure4_part_emphasis_by_age.pdf'))
+write_csv(part_emphasis_top_4_plot, file = here::here('data/figures_csvs/Figure4_part_emphasis_by_age.csv'))
 
 ```
 
@@ -793,7 +793,7 @@ ggplot(data = part_emphasis_top_4_by_model_bin, aes(x=model_correct_bin, y=prop_
 
 ggsave(here::here('data/figures_out/Appendix_A9_part_emphasis_by_model_bin.pdf'),units = 'in', height = 3, width = 8)
 
-write_csv(part_emphasis_top_4_by_model_bin, file = here::here('data/figures_csvs/Appendix_A9_part_emphasis_by_model_bin.pdf.csv'))
+write_csv(part_emphasis_top_4_by_model_bin, file = here::here('data/figures_csvs/Appendix_A9_part_emphasis_by_model_bin.csv'))
 
 ```
 

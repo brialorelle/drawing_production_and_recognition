@@ -167,6 +167,78 @@ d <- d %>%
 
 ```
 
+## Create subset of high performers for supplemental analyses
+```{r}
+high_performers_criteria_1 <- photo_correct %>%
+  filter(avg_photo_correct == 1) 
+```
+
+```{r}
+high_performers_criteria_2 <- d %>%
+  group_by(sessionId,recognizer_age) %>%
+  filter(producer_age != "photo") %>%
+  summarize(avg_drawing_correct = mean(correct_or_not)) %>%
+  filter(avg_drawing_correct >= .5)
+```
+```{R}
+high_performers <- high_performers_criteria_1 %>%
+  select(sessionId) %>%
+  filter(sessionId %in% high_performers_criteria_2$sessionId)
+```
+How many high performers do we have?
+```{r}
+length(unique(high_performers$sessionId))
+```
+```{r}
+high_performers_descriptives <- d %>%
+  filter(sessionId %in% high_performers$sessionId) %>%
+  group_by(recognizer_age) %>%
+  summarize(num_kids = length(unique(sessionId))) %>%
+  kable()
+```
+
+### Calculate number of trials per kid (not adult) after these exclusions and report exclusions
+```{r}
+num_trials_per_kid <- d %>%
+  # filter(!sessionId %in% adults$sessionId) %>% # exclude adults (prereg code, error)
+  filter(recognizer_age != "adult") %>% # exclude adults
+  group_by(sessionId) %>%
+  summarize(max_trials = max(trial_num)) %>%
+  summarize(average_trials = mean(max_trials))
+
+num_kids_per_exp <- d %>%
+  filter(recognizer_age != "adult") %>% # exclude adults
+  group_by(exp,recognizer_age) %>%
+  summarize(num_subs = length(unique(sessionId)))
+
+##
+```
+
+First, we excluded children who started the game but did not complete more than 1 trial after the practice trials (N = `r length(unique(didnt_start$sessionId))` participants) and the `r length(unique(adults$sessionId))` adults who participated. We also excluded all trials with RTs slower than 10s or faster than 100ms, judging these to be off-task responses. Next, we excluded participants on the basis of their performance on practice and catch trials; given that these catch trials presented a very easy recognition task, we excluded participants who did not acheive at least 75\% accuracy on these trials (N= `r length(bad_subs$sessionId)`). The remaining `r length(unique(d$sessionId))` who met this criterion completed an average of `r round(mean(num_trials_per_kid$average_trials),2)` trials. 
+On total, we analyzed `r length(d$correct_or_not)` trials where children recognized each others drawings.
+
+### Exclusion rates in each age bin; see that we are mostly filtering out young kids not on task.
+```{r}
+bad_subs_descriptives <- orig_d %>%
+  filter(sessionId %in% bad_subs$sessionId) %>%
+  group_by(sessionId) %>%
+  summarize(count_trials = n(), recognizer_age = recognizer_age[1]) %>%
+  group_by(recognizer_age) %>%
+  summarize(count_subs = n(), avg_trials = mean(count_trials))
+
+kable(bad_subs_descriptives)
+```
+
+### Calculate number of subs left in each age 
+```{r}
+d %>%
+  group_by(recognizer_age) %>%
+  summarize(num_subs = length(unique(sessionId))) %>%
+  kable()
+```
+
+
+
 ### Calculate number of trials per kid (not adult) after these exclusions and report exclusions
 ```{r}
 num_trials_per_kid <- d %>%
@@ -384,9 +456,9 @@ distinct_by_age <- all_joined %>%
   ylim(0,1)
   
 
-ggsave('figures_out/figure5b_distinct_by_age.pdf', height=3,  units='in')
+# ggsave(here::here('data/figures_out/Figure6a-v1-_distinct_by_age.pdf'), height=3,  units='in')
 
-write_csv(distinct_by_age, file = here::here('data/figures_csvs/figure5b_distinct_by_age.csv'))
+# write_csv(distinct_by_age, file = here::here('data/figures_csvs/Figure6a-v1-distinct_by_age.csv'))
 ```
 
 
@@ -420,7 +492,11 @@ crossed_design <-  all_joined %>%
   geom_hline(yintercept=.25, linetype='dashed',color='grey') +
   ylim(0,1)
 
-ggsave('figures_out/appendix_producer_by_recognizer_age.pdf',units='in', width=4, height=3)
+ggsave(here::here('data/figures_out/Appendix_B2_producer_by_recognizer_age.pdf'),units='in', width=4, height=3)
+
+write_csv(crossed_design, file = here::here('data/figures_csvs/Appendix_B2_producer_by_recognizer_age.csv'))
+
+
 
 ```
 ### Look at item effects
@@ -452,7 +528,9 @@ ggplot(both_category,aes(x=recognizer_age_numeric, y=mean, col=recognizer_age_nu
   scale_color_viridis(discrete=FALSE, name='Recognizer Age')  +
   theme(legend.position='none')
 
-ggsave('figures_out/appendix_recognition_by_category.pdf', units='in', width=7.5)
+ggsave(here::here('data/figures_out/Appendix_B3_recognition_by_category.pdf'), units='in', width=7.5)
+
+write_csv(both_category, file = here::here('data/figures_csvs/Appendix_B3_recognition_by_category.pdf'))
 ```
 
 
@@ -473,6 +551,22 @@ xtable::xtable(summary(out)$coef, digits=3, caption = "Model coefficients of a G
 
 ```
 
+### Appendix Table B2: Examine how results change with only high performing kids
+
+```{R}
+all_joined_high_perf <- all_joined %>%
+  filter(sessionId %in% high_performers$sessionId)
+
+
+model_glmer_high_performers <- glmer(correct_or_not ~ scale(log_odds)*scale(recognizer_age_numeric) +  (log_odds|intended_category)  + (1|sessionId),  data = all_joined_high_perf, family='binomial')
+
+out = summary(model_glmer_high_performers)
+```
+
+```{R}
+round(out$coefficients,3)
+xtable::xtable(summary(out)$coef, digits=3, caption = "Model coefficients of a GLMM predicting visual recognition performance as a function of recognizer age and visual 'distinctiveness' for high-performing children only (i.e. log-odds probability of selecting the correct label in logistic regression based on visual features, see Methods).")
+```
 
 
 ## Supplemental: Visualize model fits by age
@@ -485,7 +579,6 @@ round(out$coefficients,3)
 xtable::xtable(summary(out)$coef, digits=3, caption = "Model coefficients of a GLMM predicting visual recognition performance as a function of recognizer age and visual 'distinctiveness' (i.e. log-odds probability of selecting the correct label in logistic regression based on visual features, see Methods).")
 
 ```
-
 
 ```{r}
 predicted_vals = predict(model_glmer, all_joined, type='response')
