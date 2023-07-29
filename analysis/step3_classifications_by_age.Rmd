@@ -76,7 +76,7 @@ ggplot(cor_by_age, aes(age_numeric,mean*100, col=age_numeric)) +
   geom_pointrange(aes(y=mean*100, ymin = ci_lower*100, ymax = ci_upper*100)) +
   geom_smooth(alpha=smooth_alpha, color='grey', span=5) +
   theme_few(base_size = base_size_chosen) + 
-  geom_line(data = cor_by_category, aes(group=category), alpha=.2) +
+  # geom_line(data = cor_by_category, aes(group=category), alpha=.2) +
   labs(x='Age of child drawing (yrs)', y='Drawing classification accuracy') +
   scale_x_continuous(breaks = seq(2,10,1)) + 
   theme(legend.position = "none", aspect.ratio = 1) +
