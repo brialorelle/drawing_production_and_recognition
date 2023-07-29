@@ -105,7 +105,7 @@ ggplot(clip_cor_by_age, aes(age_numeric,mean*100, col=age_numeric)) +
   geom_hline(yintercept = 1/48, linetype="dashed", color="grey") 
 
 ggsave(here::here('data/figures_out/Appendix_A2_clip_cor_by_age_and_category.pdf'), width=3, height=3, units='in')
-write_csv(clip_cor_by_age, file = here::here('data/figures_csvs/Appendix_A2_clip_cor_by_age_and_category.pdf'))
+write_csv(clip_cor_by_age, file = here::here('data/figures_csvs/Appendix_A2_clip_cor_by_age_and_category.csv'))
 ```
 
 ## Appendix: Classification by each VGG Layer
@@ -308,7 +308,7 @@ devphotodraw_recog_by_age <- humans %>%
 ```{r}
 ggplot(data=devphotodraw_recog, aes(x=age, y=prop_correct, color=age)) +
   geom_point(alpha=.3) +
-  geom_line(aes(group=category), alpha=.05) +
+  geom_line(aes(group=category), alpha=.2) +
   geom_pointrange(data = devphotodraw_recog_by_age, aes(ymin = ci_lower, ymax = ci_upper, y=mean, x=age))  +
   scale_color_viridis_c() +
   ylim(0,1) +
