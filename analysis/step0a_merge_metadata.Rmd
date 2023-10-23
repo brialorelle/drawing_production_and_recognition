@@ -14,6 +14,7 @@ output:
 library(tidyverse)
 library(pander)
 library(knitr)
+library(here)
 ```
 
 ```{r include=FALSE}
@@ -21,6 +22,19 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 
 # Set random seed for reproducibility
 set.seed(123)
+```
+
+# Count sessions where we had interference
+
+```{r}
+interference = read.csv(here::here('data/filtering_outputs/interference_count_across_age_and_runs.csv')) %>%
+  mutate(age_numeric = as.numeric(str_split_fixed(interference_age,'age',2)[,2]))
+```
+
+```{R}
+by_age <- interference %>%
+  group_by(age_numeric) %>%
+  summarize(parent_draw = sum(parent_draw_count), other_draw = sum(other_draw_count), num_participants = sum(all_surveys_count))
 ```
 
 # Load and join meta-data for filtered datasets and merged
