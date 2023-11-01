@@ -166,8 +166,25 @@ write_csv(distinct_by_age, file = here::here('data/figures_csvs/Appendix_B1_CLIP
 model_glmer <- glmer(correct_or_not ~ scale(clip_prob)*scale(recognizer_age_numeric) + (scale(clip_prob)|intended_category) + (1|sessionId),  data = all_joined, family='binomial')
 out = summary(model_glmer)
 
-round(out$coefficients,3)
-xtable::xtable(summary(out)$coef, digits=3, caption = "Model coefficients of a GLMM predicting visual recognition performance as a function of recognizer age and visual 'distinctiveness' metrics (here, cross-modal CLIP probability,see Methods")
+cis_clip = confint(model_glmer, method='Wald')
+```
+
+```{r}
+summary_model <- summary(model_glmer)
+
+summary_table_complete <- cbind(Estimate = sprintf("%.3f",round(summary_model$coefficients[, "Estimate"],3)),
+                                `Std. Error` = sprintf("%.3f",round(summary_model$coefficients[, "Std. Error"],3)),
+                                `z value` = sprintf("%.3f",round(summary_model$coefficients[, "z value"],3)),
+                                `Pr(>|z|)` = format.pval(summary_model$coefficients[, "Pr(>|z|)"],eps=0.0001,scientific = FALSE, digits=2),
+                                 `2.5 % CI` = sprintf("%.3f",round(cis_clip[5:8, 1],3)),
+                                `97.5 % CI` = sprintf("%.3f",round(cis_clip[5:8, 2],3)))
+                              
+rownames(summary_table_complete) = c('Intercept','Classifier evidence', 'Recognizer age','CLIP evidence*Recognizer Age')
+```
+
+```{R}
+
+xtable::xtable(summary_table_complete, digits=3, caption = "Model coefficients of a generalized linear mixed-effects model predicting binary visual recognition performance for each drawing as a function of recognizer age and CLIP classifier evidence in each drawing that was recognized by children. All predictors were z-scored prior to analysis such that coefficients are standardized and comparable. All significance tests are Wald significance tests based on the coefficient values; these tests are two-tailed. No adjustments were made for multiple comparisons. See \textit{Methods} for model details on model specifications.")
 
 ```
 

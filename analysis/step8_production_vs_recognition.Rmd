@@ -158,40 +158,64 @@ both_clip <- both_clip_long %>%
 
 ## kid recognition: if a kid is 3-years-old, how many "airplane" drawings does he recognized on average
 ## kid production: if a kid is 3-year-old, how many "recognizable" airplanes drawings can he produce (on average)
-# 
-# both_clip_long <- recognizer_by_age_by_category %>%
-#   mutate(mode = 'kid_recognition') %>%
-#   full_join(clip_producer_age_by_category %>% rename(age_numeric = producer_age_numeric)) %>%
-#   filter(!is.na(avg_recognized))
+
 ```
 
-```{r}
-both_clip_longer <- recognizer_by_age_by_category %>%
-  rename(kid_recognition = avg_recognized) %>%
-  right_join(clip_producer_age_by_category %>% rename(model_recognition = avg_recognized) %>% select(-count, -mode)) %>%
-  filter(producer_age_numeric > 2)
-  
-```
 
 
 # Plot it
 ## Figure 7: recognition by producton
+```{R}
+both_clip$age_factor = factor(both_clip$age_numeric, labels = c('3-year-olds','4-year-olds','5-year-olds','6-year-olds','7-year-olds','8-year-olds','9-year-olds','10-year-olds'))
+```
+
 ```{r}
-ggplot(both_clip, aes(x=kid, y=model, color=category)) +
+ggplot(both_clip, aes(x=kid, y=model, color=category, size=count_clip_recognition)) +
   geom_point(alpha=.4)  +
-  theme_few(base_size=10) +
+  theme_few(base_size=7, base_family = "Helvetica") +
   theme(aspect.ratio=1, legend.position = 'none')  +
-  ylab('Production (CLIP recognition accuracy)') +
-  xlab('Recognition (Children\'s recognition accuracy)')  +
+  ylab('Drawing Production (Model recognition accuracy)') +
+  xlab('Drawing Recognition (Children\'s recognition accuracy)')  +
   scale_y_continuous(breaks=c(0,.2,.4,.6,.8, 1), limits=c(0,1)) +
   scale_x_continuous(breaks=c(0,.2,.4,.6,.8, 1), limits=c(0,1))   +
-  geom_smooth(method='lm',alpha=0, size=.5, aes(weight=count_clip_recognition, group=age_numeric), color="#555555") +
-  ggrepel::geom_label_repel(aes(label = category), size=1.5, max.overlaps = 30, force_pull=3,  label.padding = .1, box.padding = .1, label.size = .1,  alpha=.8, segment.color = NA)  +
-  facet_wrap(~age_numeric, nrow=2)
+  geom_smooth(method='lm',alpha=0, size=.5, aes(weight=count_clip_recognition), color='grey') + 
+  # scale_color_viridis_c() +
+  ggrepel::geom_label_repel(aes(label = category), size=2, max.overlaps = 10, force_pull=3,  label.padding = .1, box.padding = .1, label.size = .1,  alpha=.8, segment.color = NA)+
+  facet_wrap(~age_factor, nrow=2)
 
-ggsave(here::here('data/figures_out/Figure7_production_vs_recognition.pdf'), width=7.5, height=3, units='in')
 
-write_csv(both_clip, file = here::here('data/figures_csvs/Figure7_production_vs_recognition.csv'))
+ggsave(here::here('data/figures_out/Figure7_production_vs_recognition.pdf'), width=7.09, height=3.5, units='in')
+
+ggsave(here::here('data/figures_out/Figure7_production_vs_recognition.pdf'), width=7.09, height=4, units='in')
+
+# write_csv(both_clip, file = here::here('data/figures_csvs/Figure7_production_vs_recognition.csv'))
 
 ```
+
+```{r}
+sum(both_clip$count_kid_recognition)
+```
+
+```{r}
+sum(both_clip$count_clip_recognition)
+```
+
+# Run basic correlations
+```{r}
+across_all_ages_cor = cor.test(both_clip$kid, both_clip$model)
+```
+
+$r$ = `r  round(across_all_ages_cor$estimate,3)`, $t$(`r across_all_ages_cor$parameter`)= `r across_all_ages_cor$statistic`, $P$ < `r across_all_ages_cor$p.value`, CI = [`r round(across_all_ages_cor$conf.int[1],3)`, `r round(across_all_ages_cor$conf.int[2],3)`]
+
+
+```{r}
+by_category = both_clip %>% 
+  group_by(intended_category) %>%
+  summarize(avg_kid = mean(kid), avg_model = mean(model))
+```
+```{r}
+prod_recog_cor = cor.test(by_category$avg_kid, by_category$avg_model)
+```
+
+$r$ = `r  round(prod_recog_cor$estimate,3)`, $t$(`r prod_recog_cor$parameter`)= `r prod_recog_cor$statistic`, $P$ < `r prod_recog_cor$p.value`, CI = [`r round(prod_recog_cor$conf.int[1],3`), `r round(prod_recog_cor$conf.int[2],3)`]
 
