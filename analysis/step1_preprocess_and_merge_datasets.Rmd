@@ -14,11 +14,9 @@ library(tidyverse)
 library(here)
 library(assertthat)
 library(ggthemes)
-library(egg)
 library(viridis)
 library(lme4)
 library(lmerTest)
-library(MuMIn)
 library(langcog)
 library(pander)
 ```
@@ -98,8 +96,7 @@ tracing_correlation <- all_tracings %>%
 tracing_cor = cor.test(tracing_correlation$square, tracing_correlation$shape)
 ```
 
-We found that tracing scores produced by the same participant were moderately correlated ($r$ = .60, $t$ = 61.93, $df$ = 6754, $p$ < .001, \textit{N} = `r length(unique(tracing_correlation$session_id))`), despite the irregular shape being harder to trace than the square.
-
+We found that tracing scores produced by the same participant were moderately correlated ($r$(6754) = .60, $t$ = 61.93,$p$ < .001, CI = [`tracing_cor$conf.int[1]`, `tracing_cor$conf.int[2]`], despite the irregular shape being harder to trace than the square.
 
 ### Load category animacy/size (hardcoding)
 ```{r}
