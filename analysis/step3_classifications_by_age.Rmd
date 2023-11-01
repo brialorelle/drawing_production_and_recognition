@@ -16,8 +16,6 @@ library(here)
 library(assertthat)
 library(ggthemes)
 library(viridis)
-library(lme4)
-library(lmerTest)
 library(langcog)
 library(pander)
 
@@ -83,9 +81,9 @@ ggplot(cor_by_age, aes(age_numeric,mean*100, col=age_numeric)) +
   scale_color_viridis(option="D", breaks=seq(3,10,1)) +
   geom_hline(yintercept = 1/48, linetype="dashed", color="grey") 
 
-ggsave(here::here('data/figures_out/Figure2A_cor_by_category_by_age.pdf'), width=3, height=3, units='in')
+# ggsave(here::here('data/figures_out/Figure2A_cor_by_category_by_age.pdf'), width=3, height=3, units='in')
 
-write_csv(cor_by_age, file = here::here('data/figures_csvs/Figure2A_cor_by_category_by_age.csv'))
+# write_csv(cor_by_age, file = here::here('data/figures_csvs/Figure2A_cor_by_category_by_age.csv'))
 ```
 
 ## Appendix: CLIP classifications by age
@@ -121,11 +119,11 @@ cor_by_age_by_all_layers <- all_layer_class %>%
   group_by(layer, age_numeric) %>%
   multi_boot_standard(col = 'avg_correct') 
 
-cor_by_age_by_all_layers$layer_ordered = fct_relevel(cor_by_age_by_all_layers$layer, levels = c('P1','P2','P3','P4','P5','FC6','FC7'))
+cor_by_age_by_all_layers$layer_ordered = factor(cor_by_age_by_all_layers$layer, levels = c('P1','P2','P3','P4','P5','FC6','FC7'))
 ```
 
 ```{r}
-ggplot(cor_by_age_by_all_layers, aes(age_numeric,mean*100, color=layer_ordered, group=layer_ordered)) +  
+ggplot(cor_by_age_by_all_layers, aes(age_numeric,mean*100, color=layer_ordered, group=layer_ordered)) + 
   # geom_jitter(data=cor_by_category, width=.1, height=0, alpha=.2) +
   geom_pointrange(aes(y=mean*100, ymin = ci_lower*100, ymax = ci_upper*100)) +
   geom_smooth(alpha=.2, span=1) +
@@ -176,6 +174,14 @@ lo_all_drawings_by_each_age <- d %>%
   multi_boot_standard(col = 'avg_cor') %>%
   ungroup () %>%
   mutate(category = fct_reorder(category, -mean)) 
+
+
+lo_all_drawings_by_each_age_count<- d %>%
+  mutate(category = str_replace(category,'ice.cream','ice cream')) %>%  # ice.cream -> ice_cream
+  group_by(age_numeric,category) %>%
+  summarize(avg_cor = mean(log_odds), num_drawings = n()) 
+
+mean(lo_all_drawings_by_each_age_count$num_drawings)
 ```
 
 ## Figure 2B: Changes in log-odds by age 
