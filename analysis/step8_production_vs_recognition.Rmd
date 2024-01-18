@@ -180,7 +180,7 @@ ggplot(both_clip, aes(x=kid, y=model, color=category, size=count_clip_recognitio
   scale_x_continuous(breaks=c(0,.2,.4,.6,.8, 1), limits=c(0,1))   +
   geom_smooth(method='lm',alpha=0, size=.5, aes(weight=count_clip_recognition), color='grey') + 
   # scale_color_viridis_c() +
-  ggrepel::geom_label_repel(aes(label = category), size=2, max.overlaps = 10, force_pull=3,  label.padding = .1, box.padding = .1, label.size = .1,  alpha=.8, segment.color = NA)+
+  ggrepel::geom_label_repel(aes(label = category), size=2, max.overlaps = 20, force_pull=3,  label.padding = .1, box.padding = .1, label.size = .1,  alpha=.8, segment.color = NA)+
   facet_wrap(~age_factor, nrow=2)
 
 
@@ -200,13 +200,7 @@ sum(both_clip$count_kid_recognition)
 sum(both_clip$count_clip_recognition)
 ```
 
-# Run basic correlations
-```{r}
-across_all_ages_cor = cor.test(both_clip$kid, both_clip$model)
-```
-
-$r$ = `r  round(across_all_ages_cor$estimate,3)`, $t$(`r across_all_ages_cor$parameter`)= `r across_all_ages_cor$statistic`, $P$ < `r across_all_ages_cor$p.value`, CI = [`r round(across_all_ages_cor$conf.int[1],3)`, `r round(across_all_ages_cor$conf.int[2],3)`]
-
+# Run basic correlation
 
 ```{r}
 by_category = both_clip %>% 
@@ -215,7 +209,11 @@ by_category = both_clip %>%
 ```
 ```{r}
 prod_recog_cor = cor.test(by_category$avg_kid, by_category$avg_model)
+
+# $r$ = `r  round(prod_recog_cor$estimate,3)`, $t$(`r prod_recog_cor$parameter`)= `r prod_recog_cor$statistic`, $P$ < `r prod_recog_cor$p.value`, CI = [`r round(prod_recog_cor$conf.int[1],3`), `r round(prod_recog_cor$conf.int[2],3)`]
 ```
 
-$r$ = `r  round(prod_recog_cor$estimate,3)`, $t$(`r prod_recog_cor$parameter`)= `r prod_recog_cor$statistic`, $P$ < `r prod_recog_cor$p.value`, CI = [`r round(prod_recog_cor$conf.int[1],3`), `r round(prod_recog_cor$conf.int[2],3)`]
+```{r}
+pander(sessionInfo())
+```
 

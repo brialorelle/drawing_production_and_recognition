@@ -87,7 +87,7 @@ Raw drawing data ($N$ = 15594 drawings) were then screened for task compliance u
 all_meta <- all_meta %>%
   full_join(cogsci_2019)
 
-write_csv(all_meta, path = here::here('data/drawings/stringent_cleaned_dataset_meta', paste0('all_object_metadata_cleaned.csv')))
+# write_csv(all_meta, path = here::here('data/drawings/stringent_cleaned_dataset_meta', paste0('all_object_metadata_cleaned.csv')))
 ```
 
 # Appendix A1: Detailed demographics

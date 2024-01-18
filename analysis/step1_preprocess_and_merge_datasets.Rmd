@@ -257,10 +257,10 @@ assert_that(length(missing_meta$filename)==0)
 
 ```{r}
 ## merged vgg classifications with meta
-save(d, file=here::here('data/preprocessed_data/merged_vgg_class_and_meta.RData'))
+# save(d, file=here::here('data/preprocessed_data/merged_vgg_class_and_meta.RData'))
 
 ##
-write_csv(d, file=here::here('data/preprocessed_data/merged_vgg_class_and_meta.csv'))
+# write_csv(d, file=here::here('data/preprocessed_data/merged_vgg_class_and_meta.csv'))
 
 ```
 
@@ -331,10 +331,10 @@ assert_that(length(missing_meta$filename)==0)
 
 ```{r}
 ## merged clip classifications with meta
-save(d_clip, file=here::here('data/preprocessed_data/merged_clip_class_and_meta.RData'))
+# save(d_clip, file=here::here('data/preprocessed_data/merged_clip_class_and_meta.RData'))
 
 ##
-write_csv(d_clip, file=here::here('data/preprocessed_data/merged_clip_class_and_meta.csv'))
+# write_csv(d_clip, file=here::here('data/preprocessed_data/merged_clip_class_and_meta.csv'))
 ```
 
 

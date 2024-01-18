@@ -150,7 +150,6 @@ summary_table_complete <- cbind(Estimate = sprintf("%.3f",round(summary_model$co
                               
 ```
 
-## Table 1
 ```{r}
 
 rownames(summary_table_complete) = c('Intercept','Age (in years)','Est. drawing frequency','Avg tracing rating','Time spent drawing','Ink used','Number of strokes','Age*drawing frequency')
@@ -918,7 +917,6 @@ part_emphasis_top_4_plot <- part_emphasis_all %>%
 ggplot(data = part_emphasis_top_4_plot, aes(x=age_numeric, y=prop_drawings, col=roi_labelName)) +
   geom_point(aes(size = avg_emphasis, alpha=.2)) +
   scale_size(range = c(0,4)) +
-  facet_wrap(~category, nrow=1) +
   theme_few(base_size=7, base_family = "Helvetica") +
   geom_line(stat='smooth',alpha=.2, span=10, aes(group=roi_labelName)) +
   ylab('Proportion drawings with object part') +
