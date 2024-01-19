@@ -395,7 +395,7 @@ log_odds_out_clip = summary(all_covariates_log_odds_corr_only_clip)$coef
 
 
 
-Even for drawings that were correctly classified (38.6\% of the balanced subset of drawings, $N$=`r length(unique(correct_subset$filename))`) there was still a reliable increase in the amount of diagnostic information they contained across age, as measured by the log-odds probability assigned by the logistic-regression classifier to the target category (see \textit{Methods}, B = `r round(log_odds_out[2,1],3)` , SE = `r round(log_odds_out[2,2],3)`, df =  `r round(log_odds_out[2,3],3)`, t = `r round(log_odds_out[2,4],3)`, P < `r round(log_odds_out[2,5],3)`, CI = [`r round(all_covariates_log_odds_corr_only_ci[5,1],3)`,`r round(all_covariates_log_odds_corr_only_ci[5,2],3)`]). Thus, this secondary analysis provides additional support for the account that the age-related improvements reflect gradual changes in children's ability to include diagnostic visual features in their drawings. 
+Even for drawings that were correctly classified (`r round(length(unique(correct_subset$filename))/length(unique(d$filename)),3)` of the balanced subset of drawings, $N$=`r length(unique(correct_subset$filename))`) there was still a reliable increase in the amount of diagnostic information they contained across age, as measured by the log-odds probability assigned by the logistic-regression classifier to the target category (see \textit{Methods}, B = `r round(log_odds_out[2,1],3)` , SE = `r round(log_odds_out[2,2],3)`, df =  `r round(log_odds_out[2,3],3)`, t = `r round(log_odds_out[2,4],3)`, P < `r round(log_odds_out[2,5],3)`, CI = [`r round(all_covariates_log_odds_corr_only_ci[5,1],3)`,`r round(all_covariates_log_odds_corr_only_ci[5,2],3)`]). Thus, this secondary analysis provides additional support for the account that the age-related improvements reflect gradual changes in children's ability to include diagnostic visual features in their drawings. 
 
 
 
@@ -710,7 +710,6 @@ baseline_small_all <- 1 - mean(animacy_csv$size)
 ```{r}
 size_cor_by_category_by_age <- animacy_size_acc_by_age %>%
   filter(correct_or_not==0) %>%
-  # filter(animacy_correct==1) %>% # for inaniamte classifications only? doesn't matter much
   filter(drawn_category_animacy==0) %>% #only objects
   mutate(drawn_category_size = as.factor(drawn_category_size))  %>%
   mutate(baseline_chance = case_when(drawn_category_size == 0 ~ baseline_small_all, 
@@ -733,7 +732,7 @@ count_drawings_size <- animacy_size_acc_by_age %>%
 ```
 
 
-Not true for animal size!
+Not true for animal size! (not in paper but interesting)
 ```{r}
 animal_size_cor_by_category_by_age <- animacy_size_acc_by_age %>%
   filter(correct_or_not==0) %>%

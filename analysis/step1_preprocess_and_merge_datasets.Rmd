@@ -42,14 +42,14 @@ all_meta <- read_csv(file = here::here('data/drawings/stringent_cleaned_dataset_
 num_subs = length(unique(all_meta$session_id))
 ```
 
-The final, filtered dataset of N=`r length(unique(all_meta$filename))`  drawings from `r length(unique(all_meta$category))` categories from `r num_subs` children who were on average `r mean(all_meta$age_numeric)` years of age (range 3-10 years). 
+The final, filtered dataset of N=`r length(unique(all_meta$filename))`  drawings from `r length(unique(all_meta$category))` categories from `r num_subs` children who were on average `r mean(all_meta$age_numeric)` years of age (range 2-10 years). 
 
 ### Load category frequency ratings
 ```{r}
 frequency = read_csv(file = here::here('data/surveys/drawing_experience/preprocessed/Category_frequency_survey.csv')) 
 ```
 
-To assess this, `r length(unique(frequency$subject_id))` parents of children aged 3-10 years filled out a survey asking about the frequency with with their children drew the categories in the dataset.
+To assess this, `r length(unique(frequency$subject_id))` parents of children aged 2-10 years filled out a survey asking about the frequency with with their children drew the categories in the dataset.
 
 ```{r}
 count_by_age <- frequency %>%
@@ -59,7 +59,6 @@ count_by_age <- frequency %>%
 
 ```{r}
 freq_by_category <- frequency %>%
-  # filter(childs_age > 2) %>%
   mutate(category = str_split_fixed(category,' ',2)[,2]) %>%
   mutate(category = str_replace(category,' ','.')) %>%
   filter(category %in% all_meta$category) %>%

@@ -26,6 +26,12 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 ```
 
 ```{r}
+# Note that the graphs/csvs in the current paper were generated with a different seed and so may have slightly different jitters/lower and upper bounds of the CIs (within .001)
+set.seed(123)
+
+```
+
+```{r}
 load(file=here::here('data/preprocessed_data/merged_vgg_class_and_meta.RData'))
 ```
 
@@ -81,9 +87,9 @@ ggplot(cor_by_age, aes(age_numeric,mean*100, col=age_numeric)) +
   scale_color_viridis(option="D", breaks=seq(3,10,1)) +
   geom_hline(yintercept = 1/48, linetype="dashed", color="grey") 
 
-# ggsave(here::here('data/figures_out/Figure2A_cor_by_category_by_age.pdf'), width=3, height=3, units='in')
+ggsave(here::here('data/figures_out/Figure2A_cor_by_category_by_age_jan19.pdf'), width=3, height=3, units='in')
 
-# write_csv(cor_by_age, file = here::here('data/figures_csvs/Figure2A_cor_by_category_by_age.csv'))
+write_csv(cor_by_age, file = here::here('data/figures_csvs/Figure2A_cor_by_category_by_age_jan19.csv'))
 ```
 
 ## Appendix: CLIP classifications by age
@@ -182,6 +188,8 @@ lo_all_drawings_by_each_age_count<- d %>%
   summarize(avg_cor = mean(log_odds), num_drawings = n()) 
 
 mean(lo_all_drawings_by_each_age_count$num_drawings)
+range(lo_all_drawings_by_each_age_count$num_drawings)
+sum(lo_all_drawings_by_each_age_count$num_drawings)
 ```
 
 ## Figure 2B: Changes in log-odds by age 
@@ -199,7 +207,7 @@ ggplot(lo_all_drawings_by_each_age, aes(x = category, y = mean, col = age_numeri
   geom_hline(yintercept=chance, color='grey', linetype = 'dashed') + 
   theme(legend.position = 'none')
 
-ggsave(filename = here::here('data/figures_out/Figure2B_log_odds_by_category_all_drawings.pdf'), units = 'in', height= 3, width=5, useDingbats=FALSE)
+ggsave(filename = here::here('data/figures_out/Figure2B_log_odds_by_category_all_drawings_jan19.pdf'), units = 'in', height= 3, width=5, useDingbats=FALSE)
 
 
 write_csv(lo_all_drawings_by_each_age, file = here::here('data/figures_csvs/Figure2B_log_odds_by_category_all_drawings.csv'))
